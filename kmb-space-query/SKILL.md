@@ -32,6 +32,23 @@ python3 scripts/space_sql_mapper.py sql 41236
 python3 scripts/space_sql_mapper.py tree
 ```
 
+## Source priority
+
+For normal migration discovery, use sources in this order:
+
+1. live Tesseract MCP for page, graph, query, parameter, and path truth
+2. local offline JSON under `space-data/` only when MCP lacks the needed shape or detail
+
+Treat offline data as a supplement, not the default authority, when MCP is available.
+
+## Practical rules
+
+- For SQL graphs, prefer MCP `get_graph` / `get_query` first.
+- If a local fallback is needed, the common offline SQL field is `displayGraphList[*].graph.executedSql`, not a guaranteed `query.committedSql`.
+- For `TEXT` graphs, MCP may return “暂不支持语义化解析”. In that case, read the original HTML from offline `page_map.json` at `displayGraphList[*].graph.option.text`.
+- Keep `copyFrom` / `copyFromPage` only as supporting context. Do not treat a copy chain as proof that the current page has already been formally migrated.
+- Preserve the full Space path and the raw graph identifiers even when the page itself is a pure container with no charts.
+
 ## Output requirements
 
 Return the identifiers needed downstream.
@@ -41,6 +58,7 @@ Return the identifiers needed downstream.
 - `graph`: graph metadata and type
 - `sql`: complete SQL text without truncating filters or parameter logic
 - `tree`: navigable directory structure
+- `text`: when a page contains `TEXT` graphs, preserve the raw text or HTML source needed to rebuild the dashboard note blocks downstream
 
 For migration work, always preserve the full Space page `path` when it is available. That path is the default source for collection routing under `$kmb-migration`.
 
