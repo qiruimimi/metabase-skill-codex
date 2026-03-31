@@ -37,6 +37,7 @@ python3 scripts/create_model.py --name "Model: 用户访问" --config-file migra
 - Keep Model scope on reusable detail-level data: wide-table joins, dimension preprocessing, standardized date fields, and helper fields. Do not put chart-specific aggregation SQL directly into the Model unless the task explicitly calls for a one-off native card.
 - If you add a join, table, or field that was not already proven by the source graph SQL, schema-check it first. Do not assume a field exists on a table by name memory alone.
 - Normalize every physical table reference to `catalog.database.table` before creating the Model. Do not carry raw `database.table` references from Space SQL into KMB unchanged.
+- For T+1 fact tables, do not emit future-facing date rows. If the model expands `day/week/month` helper dates from a T+1 partition such as `ds`, enforce `stat_date <= ds_time` or the equivalent business bound before publishing the Model.
 - If the SQL hits any `_s_d` table, the Model must include both:
   - `STR_TO_DATE(ds, '%Y%m%d') AS ds_time`
   - `WHERE ds = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 DAY), '%Y%m%d')`
