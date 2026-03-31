@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Model Builder"
+  short_description: "Create Metabase models for KMB"
+  default_prompt: "Use $kmb-model-builder to create a KMB model from this analyzed SQL or migration plan."

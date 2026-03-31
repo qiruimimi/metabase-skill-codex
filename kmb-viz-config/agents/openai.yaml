@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Viz Config"
+  short_description: "Configure KMB chart visualization"
+  default_prompt: "Use $kmb-viz-config to apply KMB visualization settings to this card."

@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Dashboard Builder"
+  short_description: "Build KMB dashboards from cards"
+  default_prompt: "Use $kmb-dashboard-builder to assemble these cards into a KMB dashboard."

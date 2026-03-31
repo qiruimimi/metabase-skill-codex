@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Migration"
+  short_description: "Run the full Space to KMB workflow"
+  default_prompt: "Use $kmb-migration to migrate this Space page into KMB end to end."

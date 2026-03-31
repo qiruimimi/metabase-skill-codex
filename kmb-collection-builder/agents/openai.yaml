@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Collection Builder"
+  short_description: "Create and manage KMB collections"
+  default_prompt: "Use $kmb-collection-builder to prepare the target collection for this KMB task."

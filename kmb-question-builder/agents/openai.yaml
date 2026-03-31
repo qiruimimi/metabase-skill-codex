@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Question Builder"
+  short_description: "Create MBQL questions from a model or base card"
+  default_prompt: "Use $kmb-question-builder to create KMB questions from this reusable model or card base and config."

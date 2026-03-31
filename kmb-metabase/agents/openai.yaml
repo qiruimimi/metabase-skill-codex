@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Metabase"
+  short_description: "Route KMB tasks and load shared refs"
+  default_prompt: "Use $kmb-metabase to route this KMB task and load only the needed shared references."

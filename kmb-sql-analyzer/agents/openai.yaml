@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB SQL Analyzer"
+  short_description: "Analyze SQL for KMB migration design"
+  default_prompt: "Use $kmb-sql-analyzer to turn this SQL into a KMB migration plan."

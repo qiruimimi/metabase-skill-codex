@@ -1,0 +1,4 @@
+interface:
+  display_name: "KMB Space Query"
+  short_description: "Search Space pages, graphs, and SQL"
+  default_prompt: "Use $kmb-space-query to inspect this Space page, graph, or SQL before any migration work."
