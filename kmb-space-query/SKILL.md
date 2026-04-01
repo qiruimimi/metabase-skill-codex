@@ -46,6 +46,7 @@ Treat offline data as a supplement, not the default authority, when MCP is avail
 - For SQL graphs, prefer MCP `get_graph` / `get_query` first.
 - If a local fallback is needed, the common offline SQL field is `displayGraphList[*].graph.executedSql`, not a guaranteed `query.committedSql`.
 - For `TEXT` graphs, MCP may return “暂不支持语义化解析”. In that case, read the original HTML from offline `page_map.json` at `displayGraphList[*].graph.option.text`.
+- When offline SQL is reused downstream for native-card exceptions, treat any `@param` placeholders as source-side syntax only. Before writing to KMB, convert them to Metabase template-tag form `{{param}}` and define matching `template-tags`.
 - Keep `copyFrom` / `copyFromPage` only as supporting context. Do not treat a copy chain as proof that the current page has already been formally migrated.
 - Preserve the full Space path and the raw graph identifiers even when the page itself is a pure container with no charts.
 
