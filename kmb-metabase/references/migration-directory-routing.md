@@ -53,5 +53,6 @@ When the default routing rule is used, record at least:
 ## Guardrails
 
 - Do not skip intermediate collection levels.
-- Reuse an existing same-name collection under the intended parent when it already exists.
+- Reuse an existing same-name collection under the intended parent only when it is the unique active candidate or its ownership has been confirmed by existing asset metadata and live contents.
+- If multiple active same-name collections exist under the intended parent, do not resolve by first-match, newest, or oldest alone. Inspect ownership and either archive the mismatched duplicate or ignore it explicitly.
 - Do not create a parallel “migration-only” collection unless the user explicitly asks for one.

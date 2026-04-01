@@ -48,9 +48,36 @@ Short notes from real Space-to-KMB migrations. Read this only when a migration h
 - For collection routing, match same-name siblings by `location == parent.location + parent_id + "/"`, not by `parent_id`.
 - Before rerun, archive failed page assets in the wrong leaf collection; after the leaf is empty, archive the wrong root collection tree by `PUT /api/collection/{id}` with `archived: true`.
 - When verifying Models or Questions, require `status == "completed"` and treat `status == "failed"` as a hard failure even if the response body contains rows, metadata, or SQL text.
-- If multiple same-name collections exist under one parent, prefer the first active candidate and ignore archived trees during routing.
+- If multiple same-name collections exist under one parent, ignore archived trees first, then confirm ownership from live contents and recorded asset metadata before reusing any active candidate.
 
 ### Suggested defaults
 
 - Add an explicit cleanup step for misrouted collection trees after a failed migration; “move to Trash” is the supported cleanup path in Metabase/KMB, not permanent deletion.
 - For native-source rebuilds, fully qualify non-default schemas early instead of waiting for verification to expose `Unknown table` errors.
+
+## Pages 55865 and 56698
+
+### What worked
+
+- Reusing a validated parent-page detail Model shape from page `57302` reduced rebuild risk for page `55865` and its child page `56698`.
+- Treating graph-level hidden defaults such as `openposition2` as fixed filters made it possible to rebuild 22 child-page cards from one shared Model without losing page intent.
+- Rebuilding the 3 `TEXT` graphs as dashboard text cards preserved the source dashboard card count and order.
+
+### What failed first
+
+- Historical workspace artifacts incorrectly marked page `55865` as `container_only`, but live Space truth showed 10 SQL graphs. Trusting the old artifact would have skipped the parent dashboard entirely.
+- Two active same-name collections (`624` and `625`) existed under the formal `支付漏斗` parent. Name-only routing was not enough to decide reuse.
+- `PUT /api/dashboard/{id}` and `PUT /api/card/{id}` hit intermittent SSL transport errors (`EOF`, `bad record mac`) even though the business payloads were valid.
+
+### Guardrails to keep
+
+- When live page truth conflicts with old migration artifacts, trust live MCP / page-query truth and record the conflict in the new `migration_plan.json`.
+- If multiple active same-name collections exist under one formal parent, confirm actual page ownership from existing dashboards, models, and asset mappings before reusing anything.
+- Preserve graph-level fixed defaults, including hidden ones, in `migration_plan.json` as `graph_id -> fixed_filters`.
+- For pages with `TEXT` graphs, record `text_graph_ids` and the fallback source used to rebuild them.
+- For transport-layer KMB API failures, retry first and inspect partial assets before rerunning the whole page.
+
+### Suggested defaults
+
+- Treat `TEXT` graphs as first-class dashboard artifacts, not optional notes.
+- Put finite retry wrappers around `POST /api/card`, `PUT /api/card/{id}`, and `PUT /api/dashboard/{id}` in long migration scripts.

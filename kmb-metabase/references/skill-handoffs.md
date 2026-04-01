@@ -18,7 +18,7 @@ Full orchestration:
 
 ### `$kmb-space-query`
 
-- Produces: `page_id`, `graph_id`, page metadata, page `path`, raw SQL text
+- Produces: `page_id`, `graph_id`, page metadata, page `path`, raw SQL text, graph-level fixed parameter defaults, and `TEXT` HTML when present
 - Hands off to:
   - `$kmb-sql-analyzer` when SQL is ready
   - `$kmb-migration` when the task is end-to-end
@@ -94,6 +94,9 @@ Full orchestration:
   - `page_id -> graph_id -> sql -> model_id -> card_id -> dashboard_id`
 - When no explicit KMB destination is provided for Space migration, must also keep:
   - `space_path -> resolved_collection_path_segments -> intermediate_collection_ids -> final_target_collection_id`
+- For pages with graph-level defaults or `TEXT` blocks, must also keep:
+  - `graph_id -> fixed_filters`
+  - `text_graph_id -> rebuilt_text_artifact`
 
 ## Guardrails
 
@@ -103,3 +106,4 @@ Full orchestration:
 - Do not assemble dashboards before card order and layout are explicit.
 - For `_s_d` tables, let `$kmb-model-builder` enforce `ds_time` and `T+1 ds` rules.
 - Do not let `$kmb-collection-builder` infer Space business hierarchy on its own; that routing decision belongs to `$kmb-migration`.
+- Do not drop hidden graph parameter defaults during the `$kmb-space-query -> $kmb-sql-analyzer -> $kmb-migration` hand-off. They are part of the graph contract, not optional UI state.
