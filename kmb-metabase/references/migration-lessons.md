@@ -8,7 +8,7 @@ Short notes from real Space-to-KMB migrations. Read this only when a migration h
 
 - One shared Model can support multiple Space graphs when the graphs differ only by aggregation, breakout, threshold, or chart type.
 - Repeated graphs should still become separate KMB cards so visualization and dashboard placement remain independent.
-- For “日/周/月” switching, expanding the grain in the Model is safer than trying to rebuild the original `CASE` logic in every Question.
+- For page `55839`'s specific “日/周/月” switching logic, expanding the grain in the Model was safer than trying to rebuild the original `CASE` logic in every Question. Do not generalize this to every time-series page when native Metabase temporal grouping on one true date field is sufficient.
 - For threshold exploration like “n 天内新签率”, a helper field in the Model plus Dashboard parameter mapping keeps the Question in MBQL.
 
 ### What failed first
@@ -81,3 +81,29 @@ Short notes from real Space-to-KMB migrations. Read this only when a migration h
 
 - Treat `TEXT` graphs as first-class dashboard artifacts, not optional notes.
 - Put finite retry wrappers around `POST /api/card`, `PUT /api/card/{id}`, and `PUT /api/dashboard/{id}` in long migration scripts.
+
+## Pages 54573, 55725, and 55726
+
+### What worked after correction
+
+- One shared revenue detail Model still supported the parent page and both child pages after the Model was reduced back to a single true payment date field.
+- Weekly charts behaved correctly once each Question used a weekly MBQL temporal breakout on `pay_success_day_time` instead of breaking out on an unbinned display date.
+- Default visible data was stable once the Question itself carried a relative recent-weeks filter on the same true date field used for breakout.
+
+### What failed first
+
+- Adding a `date_expanded` layer (`date_type`, `stat_date`, `UNION ALL` for day/week/month) was unnecessary for this page family and created avoidable complexity in both the Model and the Questions.
+- Breaking out by an unbinned date field made Metabase render the weekly chart at day grain, so only Monday points held values and the chart looked sparse or wrong.
+- A quick text replacement while removing the expansion layer broke the closing `joined_base` CTE, which then surfaced only at Question verification time.
+
+### Guardrails to keep
+
+- Before adding Model-side date expansion, first check whether Metabase can express the source requirement directly with one real date field plus `temporal-unit`.
+- If the intended chart grain is weekly or monthly, inspect the final Question payload and verify that the `breakout` contains the temporal unit, not just a bare date field.
+- Keep the Dashboard date parameter mapped to the same true date field used by the Question breakout whenever possible.
+- After refactoring a shared Model SQL block, inspect the final saved SQL for balanced CTE boundaries before attributing failures to MBQL.
+
+### Suggested defaults
+
+- Prefer one real date field in the Model and let Questions choose `day/week/month` with native Metabase temporal grouping.
+- Reserve `date_type` or other expanded-grain helper fields for pages whose business logic truly requires separate precomputed grain rows or other non-standard calendar semantics.
