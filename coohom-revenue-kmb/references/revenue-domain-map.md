@@ -108,10 +108,16 @@ Maintenance notes:
 
 ### 开团数
 
-- 业务定义：TEAM 主题下与开团行为相关的 distinct 数量指标。
-- 主口径：沿现有 MBQL 表达式口径复用。
+Metadata:
+- `last_verified_at`: `2026-04-02`
+- `verified_from`: `dashboard 666`, `card 8072`, `card 8074`, `card 8077`, `card 8078`
+- `stability`: `likely-to-change`
+- `kmb_verified`: `false`
+
+- 业务定义：TEAM 主题下按团级 key 统计的开团数量指标，不是 invoice 行数，也不是账号数。
+- 主口径：优先沿当前 grouped Model 口径复用，不要在 invoice 粒度卡里临时拼 distinct 逻辑。
 - 常见误解：开团数不是账号数，也不是支付订单数。
-- 推荐入口：card `7794`, card `7879`, dashboard `666`。
+- 推荐入口：card `8074`, card `8077`, card `8078`, dashboard `666`。
 - 适用场景：TEAM 增购行为活跃度、国家分布分析。
 
 ## Dimension Glossary
@@ -175,4 +181,4 @@ Maintenance notes:
 - 区别：TEAM 增购是独立专题，口径、维度和仪表板参数都更专门化。
 - 选型规则：只要问题包含 TEAM、member_level、purchase_scene、开团，就默认先看 `666`。
 
-_Last updated: 2026-04-01_
+_Last updated: 2026-04-02_
