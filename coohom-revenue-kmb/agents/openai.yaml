@@ -1,0 +1,4 @@
+interface:
+  display_name: "Coohom Revenue KMB"
+  short_description: "Route Coohom Revenue asks to the right KMB assets"
+  default_prompt: "Use $coohom-revenue-kmb to explain a Coohom Revenue metric, locate the right KMB asset, and reuse existing Revenue analysis before building anything new."
