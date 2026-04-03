@@ -53,11 +53,23 @@ For migration work, prefer a config file that can carry the full MBQL query bloc
 - KMB card creation requires both `display` and `visualization_settings`; this script now fills them automatically, and config files may override them.
 - Prefer config files for complex MBQL. The script now preserves the full query block, whether the config uses a nested `query` object or top-level MBQL keys.
 - Supported MBQL structures include `source-table`, `source-query`, `joins`, `expressions`, `aggregation-idents`, `breakout-idents`, `expression-idents`, `order-by`, and complex `case` / `distinct` / `count-where` aggregations.
+- Treat Metabase notebook editability as a first-class requirement, not a nice-to-have. A card that passes `/api/card/{id}/query` but crashes in `/question/{id}/notebook` is not an acceptable MBQL delivery.
+- Prefer the `question/946` and `question/8280` style of legal MBQL layering: reusable detail logic in the Model, business aggregation in the Question, and no attempt to do “join a subquery and aggregate that joined result again in the same stage”.
+- In one MBQL stage, keep to one aggregation semantic level. If the Question already joins a grouped or derived source, do not add another layer of “join-then-reaggregate” logic in that same stage just because the API accepts the payload.
+- When the intended metric requires `join -> aggregate -> rate`, split it across stages: push reusable prep fields into the Model or a prior saved Question, then let the final Question consume that source with one clean aggregation layer.
+- Prefer a reusable Model over a one-off pre-aggregated Model, but once a reusable detail Model exists, keep the Question legal and notebook-editable even if that means adding one more saved layer.
 - For time-series charts, prefer breaking out on one real date field with a Metabase temporal unit, for example `["field", "pay_success_day_time", {"base-type": "type/Date", "temporal-unit": "week"}]`. Avoid using an unbinned date field for weekly/monthly charts, because Metabase will render it at day grain and only the period anchor dates may carry values.
+- If the page grain is fixed, encode that fixed grain directly in the saved Question breakout on the real date field, for example `temporal-unit: month` for a monthly page. Do not route a fixed monthly page through `date_type/stat_date`.
+- If the page grain is user-switchable, keep the saved Question on the real date field and let the dashboard `temporal-unit` parameter override that breakout. The presence of a Space `datetype` parameter is not enough reason to switch to a synthetic date field.
+- If the source page's default grain is not natively supported by KMB `temporal-unit` such as `半年`, do not silently replace that default with `day`, `week`, `month`, or `quarter`. Treat default-grain mismatch as a stop-and-escalate condition before delivery.
 - When a Question should open with visible data by default, put the default relative date interval in the Question filter on that same true date field. Do not rely on Dashboard filters alone for the first render if the intended behavior is “open the Question and immediately see a populated chart.”
 - For migration work, pass `--verify` so every newly created card is checked with `/api/card/{id}/query` before handing it to `$kmb-viz-config`.
+- After query verification, also inspect whether the saved MBQL shape stays within notebook-safe patterns. If the card depends on nested `expressions`, multi-join reaggregation, or other editor-hostile structures, rebuild it before handing off.
 - If multiple Space graphs share one SQL or one `source-table: card__...` base but differ in legends, breakouts, or chart types, still create separate KMB cards and hand each `card_id` to `$kmb-viz-config`.
 - Prefer a shared Model when the base grain is reusable detail data. Prefer a shared `card__id` base when the reusable layer is already a stable dataset or question. Split independent cards at the final presentation layer instead of repeatedly mutating one card.
+- Do not mix metrics from different grains in one Question just because they share a date filter. If account counts are detail-grain and open-group counts are group-grain, create separate Questions.
+- When a dashboard needs both detail-grain and group-grain metrics, let each Question keep its own source Model and map the shared dashboard filters to the matching fields on each card.
+- When a grouped metric already exists in a grouped Model, prefer a plain `count`/`sum` on that grouped Model over rebuilding the trigger logic in MBQL.
 - Return the created `question_id` or `card_id`.
 - The `model_id` must come from `$kmb-model-builder` or an already-existing KMB model.
 - Treat each created `card_id` as the hand-off artifact for `$kmb-viz-config` and `$kmb-dashboard-builder`.
@@ -67,6 +79,8 @@ For migration work, prefer a config file that can carry the full MBQL query bloc
 - `collection 114` card `2208`: MBQL with `joins` plus temporal breakout.
 - `collection 114` card `607`: MBQL with `source-query`, `expressions`, and downstream sort. This same card is reused by `collection 116` dashboard `67`.
 - `collection 18` cards `124/127`: two charts share the same `card__121` base but remain separate cards.
+- `question 946`: legal notebook-editable MBQL layering. Use it as a reference for “reuse Model logic, but keep each Question stage structurally simple”.
+- `question 8280`: preferred pattern for Coohom renewal metrics when the Model is meant to stay reusable and the Question should hold the business aggregation directly.
 
 ## Hand-off
 

@@ -38,6 +38,10 @@ python3 scripts/add_cards.py --dashboard-id 5001 --config-file cards_config.json
 - For `card_id = null` text blocks, convert Space HTML/rich-text content into KMB-compatible Markdown before writing `visualization_settings.text`. Do not paste raw HTML tables or styled spans directly into KMB.
 - If a migrated text block becomes taller after Markdown conversion, reflow the downstream dashcard rows explicitly instead of keeping the old coordinates.
 - A single dashboard parameter may map to different temporal fields or grains across cards; preserve the per-card mapping instead of forcing one global target.
+- Group cards by business grain in the layout. Keep detail-grain cards together and group-grain cards together; do not interleave them if users may read them as one metric family.
+- If one tab starts mixing unrelated grains or topics, split the dashboard into tab-level sections so users can read one semantic block at a time.
+- When replacing old cards with new-grain cards, preserve the non-card text blocks and dashboard tabs, but re-check that each moved card still belongs on the same tab.
+- After replacing dashboard cards, identify the superseded cards and either archive them or explicitly mark them as deprecated if they are no longer reused.
 - Return the created `dashboard_id`.
 - Consume `card_id` values from `$kmb-question-builder` and, when present, use the post-style-update `card_id` from `$kmb-viz-config`.
 

@@ -35,6 +35,9 @@ python3 scripts/create_model.py --name "Model: 用户访问" --config-file migra
 - Use analyzed Model SQL, not raw aggregate SQL.
 - In KMB collection listings, assets marked as `dataset` are still read and referenced through `/api/card/{id}`. Treat them as card-backed datasets in downstream work.
 - Keep Model scope on reusable detail-level data: wide-table joins, dimension preprocessing, standardized date fields, and helper fields. Do not put chart-specific aggregation SQL directly into the Model unless the task explicitly calls for a one-off native card.
+- Lock the grain before writing SQL. If one metric is invoice-grain and another is group/order-grain, do not force both into one shared Model.
+- When a business metric is defined on a grouped entity such as `primary_order_id`, `team_group_order_id`, session, or user cohort, build a dedicated grouped Model instead of deriving it ad hoc inside an invoice/detail Model.
+- When the grouped Model can be derived from an existing detail Model, prefer referencing the existing saved card/model in the new Model rather than re-copying the physical-table SQL.
 - If you add a join, table, or field that was not already proven by the source graph SQL, schema-check it first. Do not assume a field exists on a table by name memory alone.
 - Normalize every physical table reference to `catalog.database.table` before creating the Model. Do not carry raw `database.table` references from Space SQL into KMB unchanged.
 - For T+1 fact tables, do not emit future-facing date rows. If the model expands `day/week/month` helper dates from a T+1 partition such as `ds`, enforce `stat_date <= ds_time` or the equivalent business bound before publishing the Model.
@@ -43,6 +46,8 @@ python3 scripts/create_model.py --name "Model: 用户访问" --config-file migra
   - `WHERE ds = DATE_FORMAT(DATE_SUB(CURRENT_DATE, INTERVAL 1 DAY), '%Y%m%d')`
 - The builder script now enforces this S-table rule and will refuse to create an unsafe model.
 - When multiple charts reuse the same business grain, prefer one shared Model and let `$kmb-question-builder` split the downstream MBQL cards.
+- If a grouped metric needs a compound trigger such as `sum(sub_account_count) >= 1 OR sum(addon_quantity) >= 2`, compute it once in the grouped Model and reuse that field downstream.
+- If a grouped metric needs a derived event date such as `open_group_date`, define the fallback rule explicitly in the Model instead of letting each chart pick its own interpretation.
 - Verify the created card can be queried when the task is a migration or delivery task.
 - Treat `exceed big query scan_rows limit` on an intentionally wide base Model as a soft result only when the SQL itself is valid and the downstream filtered delivery cards will still be query-verified.
 - Return the created `model_id`.
@@ -65,6 +70,8 @@ Then apply this preflight before the real create:
 - confirm every newly referenced table exists in the intended `catalog.database`
 - confirm every newly referenced field exists on that exact table
 - confirm reusable base Models keep only the shared grain and shared helper fields
+- confirm grouped Models declare the grouping key and the metric trigger rule explicitly
+- confirm no chart-specific presentation concern is being baked into the grouped Model
 - confirm any expected dashboard filters are documented if the base Model is intentionally broad
 
 ## Shared dependency

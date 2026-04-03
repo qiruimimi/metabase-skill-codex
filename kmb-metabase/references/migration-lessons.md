@@ -107,3 +107,58 @@ Short notes from real Space-to-KMB migrations. Read this only when a migration h
 
 - Prefer one real date field in the Model and let Questions choose `day/week/month` with native Metabase temporal grouping.
 - Reserve `date_type` or other expanded-grain helper fields for pages whose business logic truly requires separate precomputed grain rows or other non-standard calendar semantics.
+
+## Pages 55722 and 56174
+
+### What failed again
+
+- `55722` was rebuilt a second time with a synthetic `stat_date` path even though the page is only monthly and could be expressed directly as `pay_success_day_time + temporal-unit: month`.
+- `56174` was initially rebuilt with `date_type + stat_date` and bare date breakouts instead of a true-date breakout plus dashboard `time_grouping`.
+- The implementation mistake repeated because the source page's `datetype` parameter was read as a reason to expand the Model instead of first checking whether KMB already supports `type: temporal-unit` on the dashboard.
+
+### Guardrails to keep
+
+- If the source page has one true business date field such as `pay_success_day/pay_success_date`, treat that as the default KMB breakout field unless there is concrete evidence that the source logic depends on multiple incompatible calendar helper columns.
+- A Space parameter named `datetype`, `data_type`, `时间周期`, or similar is not by itself a justification for `date_expanded`, `date_type`, or `stat_date`. First check whether it should become a dashboard `type: temporal-unit` parameter.
+- For a fixed-grain page like `55722`, store the fixed grain in `migration_plan.json` as a question-level fixed filter or `temporal_unit`, then verify the final card breakout contains that temporal unit on the real date field.
+- For a switchable-grain page like `56174`, verify both of these before calling the migration done:
+  - the card's saved MBQL breakout uses the real date field with a temporal unit
+  - the dashboard `dashcard` mapping includes a `type: temporal-unit` parameter pointing at that same field
+- After wiring a `temporal-unit` dashboard parameter, run at least one dashboard-scoped query with a non-default grain such as `week` or `month`. Do not accept a static config-only review.
+
+### Suggested defaults
+
+- Revenue pages with dynamic grain should default to:
+  - one detail Model with `pay_success_day_time`
+  - Question breakout on `pay_success_day_time`
+  - dashboard `time_grouping` only for the grains KMB natively supports
+- If the source page includes a non-native grain such as `半年`, do not mark the migration “done by default” just because `day/week/month/quarter` are working. Escalate before delivery and explicitly resolve one of these outcomes:
+  - accept a reduced native grain set in KMB
+  - keep a documented page-specific non-native implementation
+- If the source page's default grain is non-native, do not silently change the delivered dashboard default to a native value such as `day` or `month`. Treat default-grain mismatch as a stop-and-escalate condition.
+
+## Page 54188 / Coohom 会员续约率
+
+### What worked after correction
+
+- A single-source Question on top of a reusable detail Model stayed structurally simpler and avoided notebook parser issues.
+- The more maintainable final direction was still not “push everything into the Model”, but “keep the Model reusable and let the Question hold one legal aggregation layer”, as seen in `question/8280`.
+- `question/946` is a good reference shape when deciding whether a multi-step metric still fits notebook-safe MBQL.
+
+### What failed first
+
+- Several rebuilt cards returned correct rows from `/api/card/{id}/query` but still failed in `/question/{id}/notebook`.
+- The failed designs all crossed the same boundary: doing `join` and then re-aggregating that joined result again in the same Question stage.
+- Treating API execution success as acceptance allowed invalid notebook payloads such as the `8257`-style structure to pass too far downstream.
+
+### Guardrails to keep
+
+- For notebook-maintained MBQL cards, validate both query execution and notebook-safe structure.
+- Do not build “join + distinct aggregation + expression/rate” all inside one stage just because Metabase's API accepts it.
+- When a metric logically needs multiple aggregation steps, split them across reusable layers instead of simulating subquery aggregation inline.
+- Prefer the `8280` pattern over the `8258` fallback when both are correct, because `8280` keeps more business logic in legal MBQL while preserving Model reuse.
+
+### Suggested defaults
+
+- If a reusable detail Model already exists, start with a single-source Question before attempting a multi-join Question.
+- Use `question/946` and `question/8280` as structural references before inventing a new MBQL shape for renewal-style metrics.

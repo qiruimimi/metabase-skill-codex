@@ -80,12 +80,18 @@ Useful IDs:
 
 ### Collection `579` - TEAM数据（beta）
 
+Metadata:
+- `last_verified_at`: `2026-04-02`
+- `verified_from`: `collection 579`, `dashboard 666`, `card 7807`, `card 8072`
+- `stability`: `likely-to-change`
+- `kmb_verified`: `false`
+
 Role:
 - TEAM upsell topic collection backing dashboard `666`.
 
 Pattern mix:
-- One reusable helper model on top of base revenue data plus a dedicated native helper for country-daily analysis.
-- Dashboard `666` combines filters, time grouping, summary charts, and detailed breakout cards.
+- One invoice/detail helper plus one grouped helper for open-group logic.
+- Dashboard `666` combines filters, time grouping, invoice/detail analysis on tab `468`, and open-group analysis on tab `469`.
 
 Recommended reuse:
 - Use this collection first for TEAM upsell amount, account counts, country distribution, purchase scene, and member level analysis.
@@ -96,8 +102,8 @@ Pitfalls:
 - Some cards answer similar questions with different groupings. Pick by dimension, not by similar title.
 
 Useful IDs:
-- Dataset: `7807`
-- Cards: `7765`, `7766`, `7767`, `7768`, `7769`, `7770`, `7771`, `7772`, `7773`, `7774`, `7794`, `7797`, `7821`, `7878`, `7879`
+- Datasets: `7807`, `8072`
+- Cards: `7765`, `7766`, `7767`, `7768`, `7769`, `7770`, `7771`, `7772`, `7773`, `7774`, `7797`, `8073`, `8074`, `8075`, `8076`, `8077`, `8078`
 - Dashboard: `666`
 
 ## Dashboard Map
@@ -111,7 +117,13 @@ Useful IDs:
 | `69` | 今日收入实时看板 | `119` | 实时收入 | multiple string filters | Standard real-time monitoring |
 | `98` | 今日收入实时看板——加入AI解读 | `119` | 实时收入 | reduced filter set | Monitoring with AI-oriented narrative layer |
 | `67` | LTV 与续约分析报表 | `116` | 续约断约 | string filters, date filters | Renewal, churn, and lifecycle value |
-| `666` | TEAM 增购收入看板（728） | `579` | TEAM 增购 | `date`, `sku`, `member_level`, `purchase_scene`, `time_grouping` | Default TEAM upsell entrypoint |
+| `666` | TEAM 增购收入看板（728） | `579` | TEAM 增购 | `date`, `sku`, `member_level`, `purchase_scene`, `time_grouping` | Tab `468` for account/amount analysis, tab `469` for open-group analysis |
+
+Metadata for dashboard `666`:
+- `last_verified_at`: `2026-04-02`
+- `verified_from`: `dashboard 666`
+- `stability`: `likely-to-change`
+- `kmb_verified`: `false`
 
 ## Core Card and Model Index
 
@@ -130,14 +142,18 @@ Useful IDs:
 | `639` | 今日收入 | `119` | query | `card__630`-style source chain | today revenue | Quick daily amount |
 | `651` | 今日累计收入环比昨日 | `119` | query | `card__630`-style source chain | day-over-day revenue | Real-time comparison |
 | `7765` | TEAM 增购 Helper Model（728） | `579` | query | `card__728` | SKU, member_level, purchase_scene, date | Core TEAM upsell reusable base |
-| `7807` | TEAM 国家日分析 Helper（728） | `579` | dataset | native source | country, date, account counts | Country-daily TEAM helper |
+| `7807` | TEAM Invoice Detail（728） | `579` | dataset | native source | invoice detail, country attribute, account amounts, account counts | TEAM invoice/detail base |
+| `8072` | TEAM Group Fact（728） | `579` | dataset | `card__7807` | team group key, open_group_date, grouped account/amount fields | TEAM grouped open-group base |
 | `7770` | TEAM 增购 按SKU聚合（728） | `579` | query | `card__7765` | SKU, amount, account counts | TEAM by SKU |
 | `7771` | TEAM 增购 按member_level聚合（728） | `579` | query | `card__7765` | member_level, amount, account counts | TEAM by member level |
 | `7772` | TEAM 增购 按购买场景聚合（728） | `579` | query | `card__7765` | purchase_scene, amount, account counts | TEAM by purchase scene |
-| `7794` | TEAM 增购 账号数&开团数（time-grouping） | `579` | query | `card__7765` | date, time grouping, account counts, 开团数 | TEAM time-series counts |
 | `7797` | TEAM 增购 金额（time-grouping） | `579` | query | `card__7765` | date, time grouping, amounts | TEAM time-series amount |
-| `7878` | TEAM 每日主子账号&开团国家明细（Top10+其他，MBQL v3） | `579` | query | `card__7807` | date, country bucket, account counts | TEAM country detail |
-| `7879` | TEAM 每日开团数国家分布（Top10+其他，MBQL v3） | `579` | query | `card__7807` | date, country bucket, 开团数 | TEAM country distribution trend |
+| `8073` | TEAM 账号数（time-grouping） | `579` | query | `card__7807` | date, time grouping, main/sub account counts | TEAM time-series account counts |
+| `8074` | TEAM 开团数（time-grouping） | `579` | query | `card__8072` | open_group_date, time grouping, 开团数 | TEAM time-series open-group counts |
+| `8075` | TEAM 开团国家 Top10 列表（Group Fact） | `579` | query | `card__8072` | country, 开团数 | Helper for open-group country bucketing |
+| `8076` | TEAM 每日开团国家明细（Top10+其他，Group Fact） | `579` | query | `card__8072` + `card__8075` | open_group_date, country bucket, 开团数 | TEAM open-group country detail |
+| `8077` | TEAM 每日开团数国家分布（Top10+其他，Group Fact） | `579` | query | `card__8072` + `card__8075` | open_group_date, country bucket, 开团数 | TEAM open-group country distribution trend |
+| `8078` | TEAM 开团明细（Group Fact） | `579` | query | `card__8072` | open_group_date, team_group_order_id, grouped fields | TEAM open-group detail table |
 
 ## Key Dependency Chains
 
@@ -159,9 +175,16 @@ Useful IDs:
 
 ### TEAM Upsell
 
+Metadata:
+- `last_verified_at`: `2026-04-02`
+- `verified_from`: `card 7807`, `card 8072`, `card 8073`, `card 8074`, `card 8075`, `card 8076`, `card 8077`, `card 8078`
+- `stability`: `likely-to-change`
+- `kmb_verified`: `false`
+
 - dataset `728` -> card `7765`
-- card `7765` -> `7766`, `7767`, `7768`, `7769`, `7770`, `7771`, `7772`, `7773`, `7774`, `7794`, `7797`
-- dataset `7807` -> `7821`, `7878`, `7879`
+- card `7765` -> `7766`, `7767`, `7768`, `7769`, `7770`, `7771`, `7772`, `7773`, `7774`, `7797`
+- dataset `7807` -> `8072`, `8073`
+- dataset `8072` -> `8074`, `8075`, `8076`, `8077`, `8078`
 - dashboard `666` assembles the main TEAM upsell experience
 
 ## Dashboard `666` Parameters
@@ -174,4 +197,4 @@ Useful IDs:
 | `purchase_scene` | `string/=` | Purchase context | Compare upsell scenario |
 | `time_grouping` | `temporal-unit` | day / week / month grain | Trend aggregation |
 
-_Last updated: 2026-04-01_
+_Last updated: 2026-04-02_

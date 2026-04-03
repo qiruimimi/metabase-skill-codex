@@ -114,6 +114,53 @@ For `revenue-asset-catalog.md`:
 - mark dashboards and helper chains as `likely-to-change` when the team is iterating
 - when KMB verification signals exist, note them near the relevant asset section
 
+## TEAM Upsell Maintenance Lessons
+
+Use these rules for TEAM upsell work in collection `579` and dashboard `666`.
+
+- Separate `invoice grain` from `group grain` before changing any metric.
+- Treat amount, `main_account_count`, and `sub_account_count` as invoice/detail metrics.
+- Treat `open_group_count` as a grouped metric keyed by `team_group_order_id` or the business-approved group key.
+- Do not answer or build a TEAM metric from name similarity alone when the grain is ambiguous.
+
+### Modeling rule
+
+- Keep one reusable invoice/detail Model for TEAM detail facts and helper attributes.
+- Build a separate grouped Model for open-group logic when the metric is defined by group-level conditions.
+- If the grouped Model can be derived from the invoice/detail Model, reference the existing saved card/model instead of duplicating the base SQL.
+
+### Current implemented TEAM pattern
+
+As of `2026-04-02`, the current live TEAM implementation follows this split:
+
+- Invoice/detail base: card `7807` `TEAM Invoice Detail（728）`
+- Group base: card `8072` `TEAM Group Fact（728）`
+
+Current grouped open-group rule in card `8072`:
+
+- `sum(sub_account_count) >= 1`
+- or `sum(addon_quantity) >= 2`
+
+Current grouped open-group outputs:
+
+- `open_group_date`
+- `team_group_order_id`
+- `group_main_country`
+- `total_addon_quantity`
+- grouped account and amount fields
+
+### Question and dashboard rule
+
+- Keep account/amount Questions on the invoice/detail base.
+- Keep open-group Questions on the grouped base.
+- Do not put detail-grain account counts and group-grain open-group counts into one shared Question.
+- In dashboard `666`, keep account/amount content on tab `468` and keep open-group content on tab `469`.
+
+### Cleanup rule
+
+- After replacing old TEAM open-group cards, archive the superseded cards rather than leaving two live definitions in the same collection.
+- If a helper card is still used transitively by a live card, keep it and document the dependency instead of archiving it.
+
 For `revenue-playbooks.md`:
 
 - keep playbooks stable at the routing level

@@ -69,10 +69,17 @@ Do not skip these hand-offs. Each stage should consume the artifact from the pre
 - Do not treat `TEXT` graphs as optional decoration. Preserve them as first-class dashboard artifacts with their original relative order.
 - Preserve graph-level fixed parameter defaults, including `display: false` parameters. A hidden graph parameter with a non-empty default such as `openposition2`, `ad_space`, or `version` is part of the graph definition and must be carried into the migration plan.
 - For pages with dynamic time grain (`日/周/月`) plus dashboard filters, prefer one true date field in the Model and let MBQL `breakout` use Metabase temporal grouping (`temporal-unit: day/week/month`) on that field. Keep Dashboard date filters mapped to the same true date field such as `signup_day_time` or `pay_success_day_time`.
+- If the source page exposes a grain selector like `datetype`, `data_type`, `时间周期`, or `时间粒度`, first evaluate whether it should map to a dashboard parameter of `type: temporal-unit`. Do not assume it requires Model-side `date_type/stat_date` expansion.
+- If the source page's grain set or default includes a non-native period such as `半年`, do not silently coerce it to a native `temporal-unit` default. Treat that mismatch as a stop-and-escalate decision before completing the migration.
 - Only introduce Model-side date expansion such as `date_type`, `stat_date`, or `UNION ALL` day/week/month replicas when the source page truly depends on multiple precomputed grain-specific helper fields or non-standard period logic that MBQL temporal grouping cannot express safely.
 - Do not add a `date_expanded` helper layer just to force weekly or monthly charts. If a Question is supposed to be weekly, use a real date field with weekly temporal breakout; otherwise Metabase may treat an unbinned date as daily and produce sparse charts where only week-start dates have values.
+- For a fixed-grain page such as a monthly-only page, prefer setting the Question breakout to the fixed `temporal-unit` directly on the real date field. Do not create a synthetic display date just to encode “月”.
 - When the source page is semantically weekly but still needs a default visible range, keep the Question filter on the true date field and apply a relative date interval such as recent weeks there. Do not encode the grain by filtering a synthetic `date_type` field unless the page explicitly needs multi-grain switching from the same Question.
 - For pages that need threshold-style exploration such as “n 天内转化”, prefer Model-side helper fields over native Question SQL so the Question layer can stay in MBQL.
+- For MBQL pages, do not treat “API can execute this payload” as proof that the structure is valid for notebook editing. Metabase notebook compatibility is stricter than `/api/card/{id}/query`.
+- Avoid constructing Questions that do `join` and then re-aggregate the joined result in the same stage. If a metric needs multi-step aggregation, create or reuse an intermediate saved layer instead of forcing nested subquery semantics into one Question.
+- Prefer reusable detail Models plus legal MBQL Questions over one-off mega-Models, but do not keep logic in the Question if doing so breaks notebook editability.
+- When choosing a pattern for reusable business metrics, prefer proven notebook-safe shapes such as `question/946` and the Coohom renewal rebuild `question/8280`.
 - Do not convert a whole page to native SQL just to recover dashboard parameter linkage. First ask which parameters can be expressed as Model fields and MBQL dimension mappings, then isolate only the truly algorithmic exceptions.
 - If a card must remain native, use Metabase native template tags (`{{start_ds}}`, `{{end_ds}}`, `{{date_type}}`) in the SQL itself. Do not generate KMB native SQL that still uses `@start_ds` / `@date_type` placeholders, because Dashboard parameter mappings target template tags, not raw engine session variables.
 - For native exception cards with date filters, prefer `type: date` template tags for date inputs and `type: text` only for categorical or threshold-like inputs such as `funnel_time`.
@@ -124,11 +131,14 @@ Do not call the migration complete unless all required checks pass.
 - Dashboard card count, order, and major chart behavior are preserved
 - When the source page contains `TEXT` graphs, dashboard card count and order must include the rebuilt text cards, not just SQL charts.
 - Dashboard parameters exist and each expected dashcard mapping is present
+- If the page has dynamic time grain, verify the dashboard-level grain switch with at least one non-default runtime query such as `week` or `month`, not only by inspecting saved JSON.
+- If the source page default grain is non-native, the migration is not complete until the delivery explicitly records how that default was handled and the user has accepted the tradeoff.
 - When no explicit KMB destination was provided, the resolved `collection_id` must sit under KMB root collection `545`, and its hierarchy must match the Space path after removing the fixed root prefix
 - The leaf collection name must match the final segment of the Space page path unless the user explicitly overrides the target
 - All downstream Models, cards, and dashboards must be created in the resolved leaf collection, not directly under `545`
 - If multiple active same-name collections exist under the intended parent, the chosen `collection_id` must be justified by actual page ownership, not by name-only matching.
 - Every created Model and card has passed `/api/card/{id}/query`
+- Every created MBQL card that is expected to be maintained in the notebook must also stay within notebook-safe structure. A card that returns correct data but fails in the notebook editor is not accepted.
 - Treat query failures caused by invalid SQL, missing columns, unknown tables/databases, malformed MBQL, or API 4xx/5xx validation errors as hard failures.
 - A same-name dashboard or collection that exists only outside the formal `545-root` path does not satisfy the acceptance gate.
 - Treat `exceed big query scan_rows limit` on an intentionally wide unfiltered base Model as a soft validation result only when the SQL is otherwise valid and the intended dashboard-level filters are documented in `migration_plan.json`.
