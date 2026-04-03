@@ -187,6 +187,41 @@ aggregation = [
 
 ---
 
+## 3.1 Notebook 兼容性约束（重要）
+
+**关键经验**: `/api/card/{id}/query` 可以成功，不代表该 MBQL 在 Metabase notebook editor 中是合法、可维护的。
+
+### 推荐结构
+
+- 一个可复用的明细 Model
+- Question 层只做一层清晰的 `breakout/filter/aggregation`
+- 如果需要比率，优先直接放在 `aggregation` 中计算
+- 如果需要多步聚合，拆成上一层 saved Question / Model，再在下一层消费
+
+### 避免的结构
+
+- 在同一 stage 里同时做复杂 `joins`、`distinct aggregation`、再做二次聚合或表达式汇总
+- 把“join 后再聚合”的子查询语义强塞进一个 notebook Question
+- 为了少建一层对象，把本该属于前置层的聚合硬塞到最终 Question
+
+### 实战结论
+
+- `question/946` 是合法 MBQL layering 的正例
+- `question/8280` 是 Coohom 续约场景里更优的正例：Model 保持可复用，业务汇总在 Question 中直接完成
+- `8257` 这类“数据能出但 notebook 不允许”的 payload，不应视为有效交付
+
+### 经验法则
+
+可以这样判断当前设计是否安全：
+
+1. 当前 stage 是否已经在消费一个带聚合含义的来源
+2. 如果是，当前 stage 是否又在通过 `join` 人工拼出一个新的“待聚合子查询”
+3. 如果还是，当前 stage 是否继续做 `distinct` / 比率 / expression
+
+如果这三步连续成立，通常就已经越过了 notebook 安全边界，应当拆层。
+
+---
+
 ## 4. MBQL 与原生 SQL 的选择
 
 > **前提**：本节讨论的是在 Model + MBQL 架构内部，Question 层应该用 MBQL 还是原生 SQL。API 端点与调用规范以 `rules/api-standards.md` 为准。

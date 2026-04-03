@@ -76,6 +76,10 @@ Do not skip these hand-offs. Each stage should consume the artifact from the pre
 - For a fixed-grain page such as a monthly-only page, prefer setting the Question breakout to the fixed `temporal-unit` directly on the real date field. Do not create a synthetic display date just to encode “月”.
 - When the source page is semantically weekly but still needs a default visible range, keep the Question filter on the true date field and apply a relative date interval such as recent weeks there. Do not encode the grain by filtering a synthetic `date_type` field unless the page explicitly needs multi-grain switching from the same Question.
 - For pages that need threshold-style exploration such as “n 天内转化”, prefer Model-side helper fields over native Question SQL so the Question layer can stay in MBQL.
+- For MBQL pages, do not treat “API can execute this payload” as proof that the structure is valid for notebook editing. Metabase notebook compatibility is stricter than `/api/card/{id}/query`.
+- Avoid constructing Questions that do `join` and then re-aggregate the joined result in the same stage. If a metric needs multi-step aggregation, create or reuse an intermediate saved layer instead of forcing nested subquery semantics into one Question.
+- Prefer reusable detail Models plus legal MBQL Questions over one-off mega-Models, but do not keep logic in the Question if doing so breaks notebook editability.
+- When choosing a pattern for reusable business metrics, prefer proven notebook-safe shapes such as `question/946` and the Coohom renewal rebuild `question/8280`.
 - Do not convert a whole page to native SQL just to recover dashboard parameter linkage. First ask which parameters can be expressed as Model fields and MBQL dimension mappings, then isolate only the truly algorithmic exceptions.
 - If a card must remain native, use Metabase native template tags (`{{start_ds}}`, `{{end_ds}}`, `{{date_type}}`) in the SQL itself. Do not generate KMB native SQL that still uses `@start_ds` / `@date_type` placeholders, because Dashboard parameter mappings target template tags, not raw engine session variables.
 - For native exception cards with date filters, prefer `type: date` template tags for date inputs and `type: text` only for categorical or threshold-like inputs such as `funnel_time`.
@@ -134,6 +138,7 @@ Do not call the migration complete unless all required checks pass.
 - All downstream Models, cards, and dashboards must be created in the resolved leaf collection, not directly under `545`
 - If multiple active same-name collections exist under the intended parent, the chosen `collection_id` must be justified by actual page ownership, not by name-only matching.
 - Every created Model and card has passed `/api/card/{id}/query`
+- Every created MBQL card that is expected to be maintained in the notebook must also stay within notebook-safe structure. A card that returns correct data but fails in the notebook editor is not accepted.
 - Treat query failures caused by invalid SQL, missing columns, unknown tables/databases, malformed MBQL, or API 4xx/5xx validation errors as hard failures.
 - A same-name dashboard or collection that exists only outside the formal `545-root` path does not satisfy the acceptance gate.
 - Treat `exceed big query scan_rows limit` on an intentionally wide unfiltered base Model as a soft validation result only when the SQL is otherwise valid and the intended dashboard-level filters are documented in `migration_plan.json`.

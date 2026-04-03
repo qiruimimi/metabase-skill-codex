@@ -136,3 +136,29 @@ Short notes from real Space-to-KMB migrations. Read this only when a migration h
   - accept a reduced native grain set in KMB
   - keep a documented page-specific non-native implementation
 - If the source page's default grain is non-native, do not silently change the delivered dashboard default to a native value such as `day` or `month`. Treat default-grain mismatch as a stop-and-escalate condition.
+
+## Page 54188 / Coohom 会员续约率
+
+### What worked after correction
+
+- A single-source Question on top of a reusable detail Model stayed structurally simpler and avoided notebook parser issues.
+- The more maintainable final direction was still not “push everything into the Model”, but “keep the Model reusable and let the Question hold one legal aggregation layer”, as seen in `question/8280`.
+- `question/946` is a good reference shape when deciding whether a multi-step metric still fits notebook-safe MBQL.
+
+### What failed first
+
+- Several rebuilt cards returned correct rows from `/api/card/{id}/query` but still failed in `/question/{id}/notebook`.
+- The failed designs all crossed the same boundary: doing `join` and then re-aggregating that joined result again in the same Question stage.
+- Treating API execution success as acceptance allowed invalid notebook payloads such as the `8257`-style structure to pass too far downstream.
+
+### Guardrails to keep
+
+- For notebook-maintained MBQL cards, validate both query execution and notebook-safe structure.
+- Do not build “join + distinct aggregation + expression/rate” all inside one stage just because Metabase's API accepts it.
+- When a metric logically needs multiple aggregation steps, split them across reusable layers instead of simulating subquery aggregation inline.
+- Prefer the `8280` pattern over the `8258` fallback when both are correct, because `8280` keeps more business logic in legal MBQL while preserving Model reuse.
+
+### Suggested defaults
+
+- If a reusable detail Model already exists, start with a single-source Question before attempting a multi-join Question.
+- Use `question/946` and `question/8280` as structural references before inventing a new MBQL shape for renewal-style metrics.
